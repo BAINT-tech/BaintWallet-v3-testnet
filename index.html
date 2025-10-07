@@ -107,7 +107,7 @@
   <footer>BAINT Wallet • Demo v3 — do not use mainnet funds</footer>
 
   <!-- ethers v6 -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.0/dist/ethers.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.7.0/dist/ethers.umd.min.js"></script>
 
   <!-- App script -->
   <script>
@@ -177,30 +177,43 @@
       }
     }
 
-    async function switchTo(presetKey){
-      if(!window.ethereum) { alert('No wallet'); return; }
-      const p = PRESETS[presetKey];
-      if(!p) return;
-      try{
-        let explorer = p.name.includes('BSC') ? 'https://testnet.bscscan.com/' : 'https://sepolia.etherscan.io/';
-await window.ethereum.request({
-  method: 'wallet_addEthereumChain',
-  params: [{
-    chainId: p.hex,
-    chainName: p.name,
-    nativeCurrency: {
-      name: p.name + ' Coin',
-      symbol: p.name.includes('BSC') ? 'tBNB' : 'tETH',
-      decimals: 18
-    },
-    rpcUrls: [p.rpc || ''],
-    blockExplorerUrls: [explorer]
-  }]
-});     }     }catch(addErr){ console.error('Add chain error', addErr); alert('Could not add chain: '+(addErr.message||addErr)); return; }
-        } else {
-          console.error('Switch error', err); alert('Switch failed: ' + (err.message||err)); return;
-        }
+    async function connectWalletAndSwitch(chain) {
+  try {
+    if (!window.ethereum) {
+      alert("Please install MetaMask!");
+      return;
+    }
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+
+    // Switch network
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: networks[chain].chainId }],
+      });
+      console.log(`Switched to ${networks[chain].chainName}`);
+    } catch (switchError) {
+      // If the network is not added
+      if (switchError.code === 4902) {
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [networks[chain]],
+        });
+      } else {
+        throw switchError;
       }
+    }
+
+    const signer = await provider.getSigner();
+    const address = await signer.getAddress();
+    console.log("Connected:", address);
+
+  } catch (error) {
+    console.error("Connection failed:", error);
+  }
+    }
       // refresh state
       const provider = new ethers.BrowserProvider(window.ethereum);
       const net = await provider.getNetwork();
