@@ -107,7 +107,7 @@
   <footer>BAINT Wallet • Demo v3 — do not use mainnet funds</footer>
 
   <!-- ethers v6 -->
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.7.0/dist/ethers.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.8.0/dist/ethers.umd.min.js"></script>
 
   <!-- App script -->
   <script>
@@ -182,18 +182,21 @@
       const p = PRESETS[presetKey];
       if(!p) return;
       try{
-        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: p.hex }] });
-      }catch(err){
-        if(err.code === 4902){
-          try{
-            await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{
-              chainId: p.hex,
-              chainName: p.name,
-              nativeCurrency: { name: p.name + ' Coin', symbol: p.name==='BSC Testnet' ? 'tBNB':'tETH', decimals: 18 },
-              rpcUrls: [p.rpc || ''],
-              blockExplorerUrls: []
-            }]});
-          }catch(addErr){ console.error('Add chain error', addErr); alert('Could not add chain: '+(addErr.message||addErr)); return; }
+        let explorer = p.name.includes('BSC') ? 'https://testnet.bscscan.com/' : 'https://sepolia.etherscan.io/';
+await window.ethereum.request({
+  method: 'wallet_addEthereumChain',
+  params: [{
+    chainId: p.hex,
+    chainName: p.name,
+    nativeCurrency: {
+      name: p.name + ' Coin',
+      symbol: p.name.includes('BSC') ? 'tBNB' : 'tETH',
+      decimals: 18
+    },
+    rpcUrls: [p.rpc || ''],
+    blockExplorerUrls: [explorer]
+  }]
+});     }     }catch(addErr){ console.error('Add chain error', addErr); alert('Could not add chain: '+(addErr.message||addErr)); return; }
         } else {
           console.error('Switch error', err); alert('Switch failed: ' + (err.message||err)); return;
         }
